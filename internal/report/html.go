@@ -15,6 +15,7 @@ var htmlTemplate string
 var tmpl = template.Must(template.New("report").Funcs(template.FuncMap{
 	"upper": strings.ToUpper,
 	"sev":   func(s scan.Severity) string { return s.String() },
+	"icon":  Icon,
 	"count": func(c map[string]int, s string) int { return c[s] },
 	"title": func(s string) string { return strings.ToUpper(s[:1]) + s[1:] },
 }).Parse(htmlTemplate))

@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
@@ -16,12 +17,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Kumar-ranjan12345/magpie/internal/checks"
 	"github.com/Kumar-ranjan12345/magpie/internal/engine"
 	"github.com/Kumar-ranjan12345/magpie/internal/report"
 )
 
 //go:embed upload.html
-var uploadPage []byte
+var uploadHTML string
+
+var uploadPage = template.Must(template.New("upload").Parse(uploadHTML))
 
 // MaxUpload caps the size of an uploaded app (large games can be several GB).
 const MaxUpload = 4 << 30
@@ -34,13 +38,28 @@ type Server struct {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.index)
+	mux.HandleFunc("GET /favicon.svg", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Cache-Control", "max-age=86400")
+		w.Write(report.IconSVG())
+	})
 	mux.HandleFunc("POST /scan", s.scan)
 	return securityHeaders(mux)
 }
 
 func (s *Server) index(w http.ResponseWriter, _ *http.Request) {
+	var buf bytes.Buffer
+	err := uploadPage.Execute(&buf, struct {
+		Icon    template.HTML
+		Version string
+		Rules   int
+	}{report.Icon(), s.Version, len(checks.Rules())})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(uploadPage)
+	w.Write(buf.Bytes())
 }
 
 func (s *Server) scan(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +168,7 @@ func securityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "no-referrer")
-		h.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'self'; form-action 'self'; base-uri 'none'")
+		h.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; form-action 'self'; base-uri 'none'")
 		next.ServeHTTP(w, r)
 	})
 }

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/magpie.svg" alt="Magpie logo" width="96">
+
 # Magpie
 
 **Find the shiny things you left in your iOS app.**

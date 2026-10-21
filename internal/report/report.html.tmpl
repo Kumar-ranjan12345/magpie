@@ -25,7 +25,8 @@
     text-decoration: underline; cursor: pointer; }
 
   header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
-  .kicker { margin: 0; color: var(--muted); font-size: 13px; }
+  .kicker { margin: 0; color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  .logo svg { width: 22px; height: 22px; display: block; }
   h1 { margin: 4px 0 2px; font-size: 28px; line-height: 1.2; }
   .grade { min-width: 112px; text-align: center; border: 1px solid var(--line); border-radius: 6px;
     background: var(--surface); padding: 10px 14px; }
@@ -76,7 +77,7 @@
 
   <header>
     <div>
-      <p class="kicker">Magpie security report</p>
+      <p class="kicker"><span class="logo">{{icon}}</span>Magpie security report</p>
       <h1>{{.App.Name}}</h1>
       <div class="mono">{{.App.BundleID}}</div>
     </div>
