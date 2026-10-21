@@ -10,8 +10,29 @@ import (
 	"github.com/Kumar-ranjan12345/magpie/internal/scan"
 )
 
+// Stage is a step of a scan, reported to the progress callback.
+type Stage string
+
+const (
+	StageUnpack Stage = "unpack" // extracting the archive and reading the binaries
+	StageChecks Stage = "checks" // running the rules
+	StageReport Stage = "report" // grading and building the report
+)
+
 // Scan opens an .ipa, a zipped .app or an .app directory and runs every check.
 func Scan(path, version string) (*scan.Report, error) {
+	return ScanWithProgress(path, version, nil)
+}
+
+// ScanWithProgress is Scan with a callback that is told when each stage starts.
+func ScanWithProgress(path, version string, progress func(Stage)) (*scan.Report, error) {
+	step := func(s Stage) {
+		if progress != nil {
+			progress(s)
+		}
+	}
+
+	step(StageUnpack)
 	app, err := bundle.Open(path)
 	if err != nil {
 		return nil, err
@@ -31,7 +52,10 @@ func Scan(path, version string) (*scan.Report, error) {
 	if info.BundleID == "" {
 		return nil, errors.New("Info.plist has no CFBundleIdentifier; is this an iOS app?")
 	}
-	return scan.NewReport("magpie", version, info, checks.Run(app)), nil
+	step(StageChecks)
+	findings := checks.Run(app)
+	step(StageReport)
+	return scan.NewReport("magpie", version, info, findings), nil
 }
 
 func firstNonEmpty(v ...string) string {

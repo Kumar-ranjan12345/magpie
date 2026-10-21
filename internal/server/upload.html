@@ -7,10 +7,10 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <style>
   :root { --bg: #ffffff; --surface: #f6f8fa; --ink: #1f2328; --muted: #59636e; --line: #d1d9e0;
-    --accent: #0969da; --accent-soft: #ddf4ff; --bad: #cf222e; --gold: #b08800; }
+    --accent: #0969da; --accent-soft: #ddf4ff; --bad: #cf222e; --gold: #b08800; --good: #1a7f37; }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #0d1117; --surface: #151b23; --ink: #e6edf3; --muted: #9198a1; --line: #30363d;
-      --accent: #4493f8; --accent-soft: #121d2f; --bad: #f85149; --gold: #d4a017; }
+      --accent: #4493f8; --accent-soft: #121d2f; --bad: #f85149; --gold: #d4a017; --good: #2ea043; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); color: var(--ink);
@@ -70,6 +70,37 @@
     main { padding-top: 32px; }
   }
   @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+  #loader { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px;
+    background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(3px); }
+  #loader[hidden] { display: none; }
+  .panel { width: 100%; max-width: 420px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+    padding: 24px 24px 20px; box-shadow: 0 12px 40px rgba(0,0,0,.18); }
+  .panel .head { display: flex; align-items: center; gap: 12px; }
+  .panel .head svg { width: 40px; height: 40px; flex: none; }
+  .panel h2 { font-size: 16px; margin: 0; overflow-wrap: anywhere; }
+  .panel .sub { color: var(--muted); font-size: 13px; }
+  .steps { list-style: none; margin: 18px 0 14px; padding: 0; }
+  .steps li { display: flex; align-items: center; gap: 10px; padding: 7px 0; color: var(--muted); }
+  .steps li .pct { margin-left: auto; font-variant-numeric: tabular-nums; font-size: 13px; }
+  .steps .mark { width: 18px; height: 18px; flex: none; border-radius: 50%; border: 1.5px solid var(--line);
+    display: grid; place-items: center; }
+  .steps li.active { color: var(--ink); font-weight: 600; }
+  .steps li.active .mark { border-color: var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+  .steps li.done { color: var(--ink); }
+  .steps li.done .mark { border-color: var(--good); background: var(--good); }
+  .steps li.done .mark::after { content: ""; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0;
+    transform: translateY(-1px) rotate(45deg); }
+  .track { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+  .track div { height: 100%; width: 0; background: var(--accent); transition: width .25s; }
+  .track.busy div { width: 30%; animation: slide 1.2s ease-in-out infinite; }
+  @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+  .panel .foot { display: flex; justify-content: space-between; margin-top: 10px; color: var(--muted); font-size: 13px;
+    font-variant-numeric: tabular-nums; }
+  .panel .error { margin: 14px 0 4px; }
+  .panel button { margin-top: 12px; font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  @media (prefers-reduced-motion: reduce) { .track.busy div { animation: none; width: 100%; opacity: .5; } }
 </style>
 </head>
 <body>
@@ -116,6 +147,27 @@
 
 <footer>Only scan apps you own or are authorised to test.</footer>
 
+<div id="loader" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="loader-title">
+    <div class="head">
+      {{.Icon}}
+      <div><h2 id="loader-title">Scanning</h2><div class="sub" id="loader-sub"></div></div>
+    </div>
+    <ol class="steps" aria-live="polite">
+      <li data-step="upload"><span class="mark"></span>Uploading<span class="pct" id="pct"></span></li>
+      <li data-step="unpack"><span class="mark"></span>Unpacking the app</li>
+      <li data-step="checks"><span class="mark"></span>Running {{.Rules}} checks</li>
+      <li data-step="report"><span class="mark"></span>Writing the report</li>
+    </ol>
+    <div class="track" id="track"><div id="bar"></div></div>
+    <div class="foot"><span id="hint">Large apps can take a little while.</span><span id="elapsed">0.0 s</span></div>
+    <div id="loader-error" hidden>
+      <p class="error" id="loader-msg"></p>
+      <button type="button" id="retry">Try another file</button>
+    </div>
+  </div>
+</div>
+
 <script>
   var drop = document.getElementById('drop');
   var input = document.getElementById('file');
@@ -140,37 +192,96 @@
   function show(html) { status.innerHTML = html; }
   function escape(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
+  var loader = document.getElementById('loader');
+  var order = ['upload', 'unpack', 'checks', 'report'];
+  var timer = null, started = 0;
+
+  function setStep(name) {
+    var idx = order.indexOf(name);
+    document.querySelectorAll('.steps li').forEach(function (li, i) {
+      li.className = i < idx ? 'done' : (i === idx ? 'active' : '');
+    });
+  }
+  function finishAll() {
+    document.querySelectorAll('.steps li').forEach(function (li) { li.className = 'done'; });
+  }
+  function openLoader(file) {
+    document.getElementById('loader-title').textContent = 'Scanning ' + file.name;
+    document.getElementById('loader-sub').textContent = (file.size / 1048576).toFixed(1) + ' MB';
+    document.getElementById('loader-error').hidden = true;
+    document.getElementById('track').hidden = false;
+    document.getElementById('hint').hidden = false;
+    document.getElementById('pct').textContent = '';
+    document.getElementById('bar').style.width = '0';
+    document.getElementById('track').classList.remove('busy');
+    setStep('upload');
+    loader.hidden = false;
+    started = Date.now();
+    clearInterval(timer);
+    timer = setInterval(function () {
+      document.getElementById('elapsed').textContent = ((Date.now() - started) / 1000).toFixed(1) + ' s';
+    }, 100);
+  }
+  function fail(msg) {
+    clearInterval(timer);
+    document.querySelectorAll('.steps li.active').forEach(function (li) { li.className = ''; });
+    document.getElementById('track').hidden = true;
+    document.getElementById('hint').hidden = true;
+    document.getElementById('loader-msg').textContent = msg;
+    document.getElementById('loader-error').hidden = false;
+    document.getElementById('retry').focus();
+  }
+  document.getElementById('retry').addEventListener('click', function () {
+    loader.hidden = true;
+    input.value = '';
+  });
+
+  function poll(id) {
+    fetch('/jobs/' + id, { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : r.text().then(function (t) { throw new Error(t); }); })
+      .then(function (st) {
+        if (st.error) { fail(st.error); return; }
+        if (st.done) {
+          finishAll();
+          clearInterval(timer);
+          setTimeout(function () { location.href = '/jobs/' + id + '/report'; }, 350);
+          return;
+        }
+        if (st.stage) setStep(st.stage);
+        setTimeout(function () { poll(id); }, 250);
+      })
+      .catch(function (e) { fail(e.message || 'Lost connection to Magpie. Is magpie serve still running?'); });
+  }
+
   function upload(file) {
     if (!/\.(ipa|zip)$/i.test(file.name)) {
       show('<p class="error">' + escape(file.name) + ' is not an .ipa or .zip file. To scan an .app folder, zip it first.</p>');
       return;
     }
-    var mb = (file.size / 1048576).toFixed(1);
-    show('<p>Uploading <b>' + escape(file.name) + '</b> (' + mb + ' MB)</p><div class="bar-track"><div id="p"></div></div>');
+    show('');
+    openLoader(file);
     var form = new FormData();
     form.append('file', file);
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/scan');
     xhr.upload.onprogress = function (e) {
-      var p = document.getElementById('p');
-      if (p && e.lengthComputable) p.style.width = (e.loaded / e.total * 100) + '%';
+      if (!e.lengthComputable) return;
+      var p = Math.round(e.loaded / e.total * 100);
+      document.getElementById('pct').textContent = p + '%';
+      document.getElementById('bar').style.width = p + '%';
     };
-    xhr.upload.onload = function () { show('<p><span class="spinner"></span>Scanning <b>' + escape(file.name) + '</b>…</p>'); };
+    xhr.upload.onload = function () {
+      document.getElementById('bar').style.width = '';
+      document.getElementById('track').classList.add('busy');
+      setStep('unpack');
+    };
     xhr.onload = function () {
-      if (xhr.status !== 200) {
-        show('<p class="error">' + escape(xhr.responseText.trim() || 'Scan failed') + '</p>');
-        input.value = '';
-        return;
-      }
-      document.open();
-      document.write(xhr.responseText);
-      document.close();
-      history.pushState(null, '', '/');
+      if (xhr.status !== 202) { fail(xhr.responseText.trim() || 'Upload failed'); return; }
+      poll(JSON.parse(xhr.responseText).id);
     };
-    xhr.onerror = function () { show('<p class="error">Lost connection to Magpie. Is <code>magpie serve</code> still running?</p>'); };
+    xhr.onerror = function () { fail('Lost connection to Magpie. Is magpie serve still running?'); };
     xhr.send(form);
   }
-  window.addEventListener('popstate', function () { location.reload(); });
 </script>
 </body>
 </html>

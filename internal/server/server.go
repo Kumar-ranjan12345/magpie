@@ -5,6 +5,7 @@ package server
 import (
 	"bytes"
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -15,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Kumar-ranjan12345/magpie/internal/checks"
@@ -33,9 +35,13 @@ const MaxUpload = 4 << 30
 type Server struct {
 	Version string
 	Logger  *log.Logger
+
+	once sync.Once
+	jobs *jobStore
 }
 
 func (s *Server) Handler() http.Handler {
+	s.once.Do(func() { s.jobs = newJobStore() })
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.index)
 	mux.HandleFunc("GET /favicon.svg", func(w http.ResponseWriter, _ *http.Request) {
@@ -44,6 +50,8 @@ func (s *Server) Handler() http.Handler {
 		w.Write(report.IconSVG())
 	})
 	mux.HandleFunc("POST /scan", s.scan)
+	mux.HandleFunc("GET /jobs/{id}", s.jobStatus)
+	mux.HandleFunc("GET /jobs/{id}/report", s.jobReport)
 	return securityHeaders(mux)
 }
 
@@ -99,23 +107,72 @@ func (s *Server) scan(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no file uploaded", http.StatusBadRequest)
 		return
 	}
+
+	// The upload is done; scan in the background and let the page poll for progress.
+	id, j := s.jobs.add(name)
+	go s.run(j, tmpPath)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]string{"id": id})
+}
+
+func (s *Server) run(j *job, tmpPath string) {
 	defer os.RemoveAll(filepath.Dir(tmpPath))
-
-	start := time.Now()
-	rep, err := engine.Scan(tmpPath, s.Version)
-	if err != nil {
-		http.Error(w, "Could not scan "+name+": "+err.Error(), http.StatusUnprocessableEntity)
-		return
+	setStage := func(st engine.Stage) {
+		j.mu.Lock()
+		j.stage = st
+		j.mu.Unlock()
 	}
-	s.logf("scanned %s (%s) in %s: grade %s, %d findings", name, rep.App.BundleID, time.Since(start).Round(time.Millisecond), rep.Grade, len(rep.Findings))
 
+	rep, err := engine.ScanWithProgress(tmpPath, s.Version, setStage)
 	var buf bytes.Buffer
-	if err := report.InteractiveHTML(&buf, rep); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err == nil {
+		err = report.InteractiveHTML(&buf, rep)
+	}
+
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	j.done = true
+	if err != nil {
+		j.err = "Could not scan " + j.name + ": " + err.Error()
+		s.logf("failed %s: %v", j.name, err)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(buf.Bytes())
+	j.report = buf.Bytes()
+	s.logf("scanned %s (%s) in %s: grade %s, %d findings", j.name, rep.App.BundleID,
+		time.Since(j.started).Round(time.Millisecond), rep.Grade, len(rep.Findings))
+}
+
+func (s *Server) jobStatus(w http.ResponseWriter, r *http.Request) {
+	j := s.jobs.get(r.PathValue("id"))
+	if j == nil {
+		http.Error(w, "scan not found or expired", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	json.NewEncoder(w).Encode(j.status())
+}
+
+func (s *Server) jobReport(w http.ResponseWriter, r *http.Request) {
+	j := s.jobs.get(r.PathValue("id"))
+	if j == nil {
+		http.Error(w, "This report has expired. Scan the app again.", http.StatusNotFound)
+		return
+	}
+	j.mu.Lock()
+	page, done, msg := j.report, j.done, j.err
+	j.mu.Unlock()
+	switch {
+	case !done:
+		http.Error(w, "scan still running", http.StatusConflict)
+	case msg != "":
+		http.Error(w, msg, http.StatusUnprocessableEntity)
+	default:
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(page)
+	}
 }
 
 func saveUpload(src io.Reader, name string) (string, error) {
