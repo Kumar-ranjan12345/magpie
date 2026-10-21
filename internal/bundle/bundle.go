@@ -28,6 +28,14 @@ type File struct {
 	Size int64
 }
 
+// Framework is an embedded framework from the app's Frameworks folder.
+type Framework struct {
+	Name     string // directory name without .framework
+	BundleID string
+	Version  string
+	Binary   *binary.Info // nil when the executable could not be read
+}
+
 type App struct {
 	Path         string // the .app directory
 	Info         map[string]any
@@ -35,6 +43,7 @@ type App struct {
 	Binary       *binary.Info
 	Entitlements map[string]any
 	Files        []File
+	Frameworks   []Framework
 
 	tmpDir string
 }
@@ -106,6 +115,8 @@ func (a *App) load() error {
 		_, _ = plist.Unmarshal(a.Binary.Entitlements, &a.Entitlements)
 	}
 
+	a.loadFrameworks()
+
 	return filepath.WalkDir(a.Path, func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || d.Type()&fs.ModeSymlink != 0 {
 			return err
@@ -118,6 +129,27 @@ func (a *App) load() error {
 		a.Files = append(a.Files, File{Rel: filepath.ToSlash(rel), Abs: p, Size: info.Size()})
 		return nil
 	})
+}
+
+func (a *App) loadFrameworks() {
+	dirs, _ := filepath.Glob(filepath.Join(a.Path, "Frameworks", "*.framework"))
+	for _, dir := range dirs {
+		fw := Framework{Name: strings.TrimSuffix(filepath.Base(dir), ".framework")}
+		exe := fw.Name
+		var info map[string]any
+		if raw, err := os.ReadFile(filepath.Join(dir, "Info.plist")); err == nil {
+			if _, err := plist.Unmarshal(raw, &info); err == nil {
+				fw.BundleID, _ = info["CFBundleIdentifier"].(string)
+				fw.Version, _ = info["CFBundleShortVersionString"].(string)
+				if e, _ := info["CFBundleExecutable"].(string); e != "" && !strings.ContainsAny(e, `/\`) {
+					exe = e
+				}
+			}
+		}
+		// An unreadable framework binary shouldn't fail the whole scan.
+		fw.Binary, _ = binary.Parse(filepath.Join(dir, exe))
+		a.Frameworks = append(a.Frameworks, fw)
+	}
 }
 
 // String returns a top-level string value from Info.plist.

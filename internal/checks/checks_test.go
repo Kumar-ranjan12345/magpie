@@ -22,6 +22,7 @@ var fixtureWant = []string{
 	"MP-ENT-001", "MP-ENT-002", "MP-ENT-003",
 	"MP-NET-001", "MP-NET-004", "MP-NET-005", "MP-NET-006", "MP-NET-008", "MP-NET-010",
 	"MP-PLT-001", "MP-PLT-002", "MP-PRV-001",
+	"MP-RES-001", "MP-RES-002", "MP-RES-003", "MP-RES-004",
 	"MP-STG-001", "MP-STG-002",
 }
 
@@ -42,6 +43,33 @@ func TestFixtureApp(t *testing.T) {
 	defer app.Close()
 	if got := ids(app); !slices.Equal(got, fixtureWant) {
 		t.Errorf("findings mismatch\n got: %v\nwant: %v", got, fixtureWant)
+	}
+}
+
+func TestProtectedApp(t *testing.T) {
+	app, err := bundle.Open("../../testdata/ProtectedApp.app")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer app.Close()
+
+	var protections []string
+	for _, f := range Run(app) {
+		switch f.ID {
+		case "MP-RES-001", "MP-RES-002", "MP-RES-003", "MP-RES-004", "MP-BIN-003":
+			t.Errorf("unexpected %s: %s", f.ID, f.Title)
+		case "MP-RES-005":
+			protections = f.Evidence
+		}
+	}
+	for _, want := range []string{"Jailbreak detection", "Anti-debugging: ptrace via dlsym()", "Hooking detection", "App Attest"} {
+		found := false
+		for _, e := range protections {
+			found = found || strings.Contains(e, want)
+		}
+		if !found {
+			t.Errorf("MP-RES-005 evidence missing %q, got %q", want, protections)
+		}
 	}
 }
 

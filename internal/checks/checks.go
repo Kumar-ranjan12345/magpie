@@ -56,6 +56,7 @@ var all = []check{
 	entitlementChecks,
 	fileChecks,
 	stringChecks,
+	resilienceChecks,
 }
 
 // Run applies every check to the app.
@@ -70,7 +71,7 @@ func Run(app *bundle.App) []scan.Finding {
 // Rules lists every rule, for documentation and the `rules` command.
 func Rules() []Rule {
 	var out []Rule
-	for _, group := range [][]Rule{binaryRules, transportRules, plistRules, entitlementRules, fileRules, stringRules} {
+	for _, group := range [][]Rule{binaryRules, transportRules, plistRules, entitlementRules, fileRules, stringRules, resilienceRules} {
 		out = append(out, group...)
 	}
 	return out

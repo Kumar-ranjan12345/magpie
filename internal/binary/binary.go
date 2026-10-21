@@ -21,6 +21,18 @@ const (
 	lcBuildVersion       = 0x32
 )
 
+// Runtime functions that only the ARC compiler emits (or emits far more often
+// than manual retain/release code). The _x<N> register variants are newer arm64 forms.
+var arcSymbols = map[string]bool{
+	"_objc_storeStrong":                        true,
+	"_objc_retainAutoreleasedReturnValue":      true,
+	"_objc_claimAutoreleasedReturnValue":       true,
+	"_objc_unsafeClaimAutoreleasedReturnValue": true,
+	"_objc_autoreleaseReturnValue":             true,
+	"_objc_retainAutoreleaseReturnValue":       true,
+	"_objc_release":                            true,
+}
+
 // N_OPT stab type, used only for the strip marker symbol.
 const nOPT = 0x3c
 
@@ -83,7 +95,7 @@ func Parse(path string) (*Info, error) {
 		case strings.HasPrefix(s, "_swift_"):
 			info.Swift = true
 		}
-		if s == "_objc_release" || s == "_objc_storeStrong" || s == "_objc_retainAutoreleasedReturnValue" {
+		if arcSymbols[s] || strings.HasPrefix(s, "_objc_release_x") || strings.HasPrefix(s, "_objc_retain_x") {
 			info.ARC = true
 		}
 	}

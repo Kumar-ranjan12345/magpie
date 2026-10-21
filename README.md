@@ -62,6 +62,7 @@ Exit codes: `0` ok · `1` findings at or above `-fail-on` · `2` error.
 | **Crypto** | MD5 / SHA-1, `rand()`, legacy `CCCrypt` |
 | **Storage** | Documents exposed via Files, bundled keystores, databases and `.env` files |
 | **Build hygiene** | localhost / staging URLs, source files in the bundle, old deployment targets |
+| **Resilience** | Jailbreak detection, anti-debugging (`ptrace`), Frida / Substrate hooking detection, App Attest / DeviceCheck, known protection SDKs (IOSSecuritySuite, freeRASP, iXGuard…) |
 | **Privacy & platform** | Custom URL schemes, background modes |
 
 Run `magpie rules` for the full list with IDs and severities.
@@ -74,6 +75,7 @@ Each finding deducts points from 100 (critical 30, high 15, medium 8, low 3, inf
 
 - **App Store downloads are encrypted.** IPAs pulled from the App Store have FairPlay-encrypted code, so binary string checks (secrets, URLs) can't read it. Magpie detects this and still scans Info.plist, entitlements and bundled files. For a full scan use an Xcode archive export of your own app.
 - **Static analysis only.** Magpie reads the app; it doesn't run it. It can tell you CCCrypt is used, not whether it's used in ECB mode.
+- **Protections are detected, not rated.** Magpie can see that an app checks for jailbreaks or Frida, not how easily those checks are bypassed. Obfuscated or commercial protections may not be visible at all.
 - **Scan only apps you own or are authorised to test.**
 
 ## Development
@@ -82,13 +84,17 @@ Each finding deducts points from 100 (critical 30, high 15, medium 8, low 3, inf
 go test ./...
 ```
 
-`testdata/VulnerableApp.app` is a deliberately insecure fixture app that trips most rules. Its binary is built from `testdata/src`:
+`testdata/VulnerableApp.app` is a deliberately insecure fixture app that trips most rules, and `testdata/ProtectedApp.app` has jailbreak, anti-debugging, hooking and App Attest checks. Their binaries are built from `testdata/src`:
 
 ```sh
 cd testdata/src
 xcrun clang -arch arm64 -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
   -miphoneos-version-min=14.0 -fno-stack-protector -O0 -g vulnerable.c -o ../VulnerableApp.app/VulnerableApp
 codesign -f -s - --entitlements entitlements.plist ../VulnerableApp.app/VulnerableApp
+
+xcrun clang -arch arm64 -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" -miphoneos-version-min=16.0 \
+  -fobjc-arc -Os protected.m -framework Foundation -framework DeviceCheck -o ../ProtectedApp.app/ProtectedApp
+strip -x ../ProtectedApp.app/ProtectedApp && codesign -f -s - ../ProtectedApp.app/ProtectedApp
 ```
 
 ## License
