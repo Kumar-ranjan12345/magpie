@@ -1,0 +1,58 @@
+# Builds release binaries and the Homebrew formula when a v* tag is pushed.
+# See .github/workflows/release.yml.
+version: 2
+
+project_name: magpie
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - main: ./cmd/magpie
+    binary: magpie
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files: [README.md, LICENSE]
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude: ["^docs:", "^test:", "^ci:"]
+
+# The formula lives in this repo's Formula/ folder, so the default GITHUB_TOKEN
+# can publish it without a separate tap repository or personal access token.
+brews:
+  - name: magpie
+    repository:
+      owner: Kumar-ranjan12345
+      name: magpie
+      branch: main
+    directory: Formula
+    commit_author:
+      name: magpie-release-bot
+      email: kumar.ranjan.kamila@gmail.com
+    commit_msg_template: "Homebrew formula for {{ .ProjectName }} {{ .Tag }}"
+    homepage: https://github.com/Kumar-ranjan12345/magpie
+    description: Fast security scanner for iOS apps (.ipa / .app)
+    license: MIT
+    install: |
+      bin.install "magpie"
+    test: |
+      system "#{bin}/magpie", "version"

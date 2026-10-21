@@ -123,7 +123,7 @@ func scanCmd(args []string, stdout, stderr io.Writer) int {
 	}
 
 	out := stdout
-	color := !*noColor && os.Getenv("NO_COLOR") == "" && isTerminal(stdout)
+	color := !*noColor && os.Getenv("NO_COLOR") == "" && (isTerminal(stdout) || os.Getenv("CLICOLOR_FORCE") == "1")
 	if *outPath != "" {
 		f, err := os.Create(*outPath)
 		if err != nil {
