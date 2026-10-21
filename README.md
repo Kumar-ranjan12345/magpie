@@ -34,6 +34,7 @@ A fast, single-binary security scanner for iOS apps. Drop in an `.ipa` and in ab
 
 ```sh
 brew tap kumar-ranjan12345/magpie https://github.com/Kumar-ranjan12345/magpie
+brew trust kumar-ranjan12345/magpie   # Homebrew 5+ asks you to trust third-party taps once
 brew install magpie
 ```
 
