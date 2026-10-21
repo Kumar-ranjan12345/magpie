@@ -5,21 +5,21 @@
 class Magpie < Formula
   desc "Fast security scanner for iOS apps (.ipa / .app)"
   homepage "https://github.com/Kumar-ranjan12345/magpie"
-  version "0.1.0"
+  version "0.1.1"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/Kumar-ranjan12345/magpie/releases/download/v0.1.0/magpie_0.1.0_darwin_amd64.tar.gz"
-      sha256 "c99ed55218188f6aa78d798efb5db03b64463db3e560f804baf35e18eac71ee2"
+      url "https://github.com/Kumar-ranjan12345/magpie/releases/download/v0.1.1/magpie_0.1.1_darwin_amd64.tar.gz"
+      sha256 "4d1b7b8c0a6891f83341f16a63bc63799c03090483b8dd3b04a35e56c4b3a1f7"
 
       define_method(:install) do
         bin.install "magpie"
       end
     end
     if Hardware::CPU.arm?
-      url "https://github.com/Kumar-ranjan12345/magpie/releases/download/v0.1.0/magpie_0.1.0_darwin_arm64.tar.gz"
-      sha256 "c31ac90ee25824be7382e1a0063f2dd8c5b1769127d3a1a6c5310b9930f4dc0b"
+      url "https://github.com/Kumar-ranjan12345/magpie/releases/download/v0.1.1/magpie_0.1.1_darwin_arm64.tar.gz"
+      sha256 "767b151cce380fe49a7ccfb6c0c328fe39bd746e481a74b0061d39ba9d549c00"
 
       define_method(:install) do
         bin.install "magpie"
@@ -29,15 +29,15 @@ class Magpie < Formula
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/Kumar-ranjan12345/magpie/releases/download/v0.1.0/magpie_0.1.0_linux_amd64.tar.gz"
-      sha256 "07434db23d39d281aa28548cd57ba38e5af908231f57625dad2b28d16fa6f5ec"
+      url "https://github.com/Kumar-ranjan12345/magpie/releases/download/v0.1.1/magpie_0.1.1_linux_amd64.tar.gz"
+      sha256 "fc76d48f2239e4601db9121c6345769b472971a1b15b97c97d011a67287340a0"
       define_method(:install) do
         bin.install "magpie"
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/Kumar-ranjan12345/magpie/releases/download/v0.1.0/magpie_0.1.0_linux_arm64.tar.gz"
-      sha256 "461f4686cc8f98c8a03702ace9200132b004a6419c782d4e779d204798830883"
+      url "https://github.com/Kumar-ranjan12345/magpie/releases/download/v0.1.1/magpie_0.1.1_linux_arm64.tar.gz"
+      sha256 "dd0fe71152c63058cd4608baf7cba7d266c78c7e244861c0f79986b0ce852bba"
       define_method(:install) do
         bin.install "magpie"
       end
