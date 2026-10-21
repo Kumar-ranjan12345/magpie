@@ -56,7 +56,7 @@ Exit codes: `0` ok · `1` findings at or above `-fail-on` · `2` error.
 | Area | Examples |
 |---|---|
 | **Binary hardening** | PIE, stack canaries, ARC, stripped symbols, embedded debug info |
-| **Secrets** | AWS, Stripe, Razorpay, GitHub, Slack, OpenAI, Anthropic, Twilio, SendGrid keys, PEM private keys, JWTs, Google API keys |
+| **Secrets** | AWS, Stripe, GitHub, Slack, OpenAI, Anthropic, Twilio, SendGrid keys, PEM private keys, JWTs, Google API keys |
 | **Network** | ATS disabled globally or for web content, insecure HTTP and old TLS exceptions, cleartext URLs, bundled pinning certificates |
 | **Entitlements** | `get-task-allow` (debuggable), development push, wildcard keychain groups |
 | **Crypto** | MD5 / SHA-1, `rand()`, legacy `CCCrypt` |

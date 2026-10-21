@@ -1,6 +1,8 @@
 package checks
 
 import (
+	"bytes"
+	"os"
 	"path"
 	"sort"
 	"strings"
@@ -76,9 +78,14 @@ func fileChecks(app *bundle.App) []scan.Finding {
 		if name == ".env" || strings.HasPrefix(name, ".env.") {
 			ext = ".env"
 		}
-		if r, ok := fileExtRules[ext]; ok {
-			add(r, f.Rel)
+		r, ok := fileExtRules[ext]
+		if !ok {
+			continue
 		}
+		if ext == ".pem" || ext == ".key" {
+			r = classifyPEM(f)
+		}
+		add(r, f.Rel)
 	}
 
 	var out []scan.Finding
@@ -87,4 +94,24 @@ func fileChecks(app *bundle.App) []scan.Finding {
 		out = append(out, rules[id].finding(files...))
 	}
 	return out
+}
+
+// classifyPEM looks inside a .pem or .key file: certificates and public keys are
+// fine to ship, private keys are not. Unreadable or non-PEM files (often DER keys)
+// are treated as private keys to be safe.
+func classifyPEM(f bundle.File) Rule {
+	if f.Size > maxTextFile {
+		return rulePrivateKeyFile
+	}
+	data, err := os.ReadFile(f.Abs)
+	if err != nil {
+		return rulePrivateKeyFile
+	}
+	if _, ok := hasPrivateKey(data); ok {
+		return rulePrivateKeyFile
+	}
+	if bytes.Contains(data, []byte("-----BEGIN CERTIFICATE-----")) || bytes.Contains(data, []byte("PUBLIC KEY-----")) {
+		return ruleCertificates
+	}
+	return rulePrivateKeyFile
 }

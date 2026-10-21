@@ -227,6 +227,9 @@ func archName(c macho.Cpu) string {
 	return c.String()
 }
 
+// Data returns the raw bytes of the analysed architecture slice.
+func (i *Info) Data() []byte { return i.data }
+
 // Strings returns the unique printable ASCII runs of at least min bytes in the executable.
 func (i *Info) Strings(min int) []string {
 	return Strings(i.data, min)

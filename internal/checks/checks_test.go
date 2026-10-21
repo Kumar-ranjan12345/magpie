@@ -81,15 +81,13 @@ func TestZipSlipRejected(t *testing.T) {
 func TestSecretPatterns(t *testing.T) {
 	// Built by concatenation so the repo never contains a scannable secret literal.
 	cases := map[string]string{
-		"AWS access key ID":   "AKIA" + "Z3XAMPLEZ3XAMPLE",
-		"Stripe secret key":   "sk_" + "live_" + strings.Repeat("a1B2", 6),
-		"GitHub token":        "ghp_" + strings.Repeat("aB3d", 9),
-		"Slack token":         "xoxb-" + "1234567890-abcdefghij",
-		"Google API key":      "AIza" + strings.Repeat("x", 35),
-		"PEM private key":     "-----BEGIN " + "RSA PRIVATE KEY-----",
-		"Anthropic API key":   "sk-ant-" + strings.Repeat("k", 40),
-		"JWT":                 "eyJ" + strings.Repeat("a", 12) + ".eyJ" + strings.Repeat("b", 12) + "." + strings.Repeat("c", 12),
-		"Razorpay key secret": "rzp_" + "live_" + strings.Repeat("Q", 14),
+		"AWS access key ID": "AKIA" + "Z3XAMPLEZ3XAMPLE",
+		"Stripe secret key": "sk_" + "live_" + strings.Repeat("a1B2", 6),
+		"GitHub token":      "ghp_" + strings.Repeat("aB3d", 9),
+		"Slack token":       "xoxb-" + "1234567890-abcdefghij",
+		"Google API key":    "AIza" + strings.Repeat("x", 35),
+		"Anthropic API key": "sk-ant-" + strings.Repeat("k", 40),
+		"JWT":               "eyJ" + strings.Repeat("a", 12) + ".eyJ" + strings.Repeat("b", 12) + "." + strings.Repeat("c", 12),
 	}
 	for name, s := range cases {
 		matched := false
@@ -102,12 +100,49 @@ func TestSecretPatterns(t *testing.T) {
 			t.Errorf("%s pattern did not match %q", name, s)
 		}
 	}
-	for _, s := range []string{"AKIA-not-a-key", "sk_test_" + strings.Repeat("a", 24), "ghp_short"} {
+	// Razorpay key IDs are public by design and must not be reported.
+	for _, s := range []string{"rzp_" + "live_" + strings.Repeat("Q", 14), "AKIA-not-a-key", "sk_test_" + strings.Repeat("a", 24), "ghp_short"} {
 		for _, p := range secretPatterns {
 			if p.re.MatchString(s) {
 				t.Errorf("%s pattern matched harmless string %q", p.name, s)
 			}
 		}
+	}
+}
+
+func TestPrivateKeyNeedsBody(t *testing.T) {
+	begin, end := "-----BEGIN "+"RSA PRIVATE KEY-----", "-----END "+"RSA PRIVATE KEY-----"
+	body := strings.Repeat(strings.Repeat("QUJD", 16)+"\n", 4) // filler, not a real key
+
+	// A parser's header constants, as found in crypto libraries.
+	if _, ok := hasPrivateKey([]byte(begin + "\x00" + end + "\x00")); ok {
+		t.Error("bare PEM header and footer reported as a private key")
+	}
+	if kind, ok := hasPrivateKey([]byte("let k = \"" + begin + "\n" + body + end + "\"")); !ok || kind != "RSA PRIVATE KEY" {
+		t.Errorf("full PEM block not detected (kind %q)", kind)
+	}
+}
+
+func TestPEMFileClassification(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, content string) bundle.File {
+		p := filepath.Join(dir, name)
+		os.WriteFile(p, []byte(content), 0o644)
+		return bundle.File{Rel: name, Abs: p, Size: int64(len(content))}
+	}
+	body := strings.Repeat(strings.Repeat("QUJD", 16)+"\n", 4)
+	cert := write("server.pem", "-----BEGIN CERTIFICATE-----\n"+body+"-----END CERTIFICATE-----\n")
+	key := write("client.pem", "-----BEGIN "+"EC PRIVATE KEY-----\n"+body+"-----END "+"EC PRIVATE KEY-----\n")
+	der := write("client.key", "\x30\x82\x01\x0a")
+
+	if got := classifyPEM(cert).ID; got != ruleCertificates.ID {
+		t.Errorf("certificate .pem classified as %s", got)
+	}
+	if got := classifyPEM(key).ID; got != rulePrivateKeyFile.ID {
+		t.Errorf("private key .pem classified as %s", got)
+	}
+	if got := classifyPEM(der).ID; got != rulePrivateKeyFile.ID {
+		t.Errorf("binary .key classified as %s", got)
 	}
 }
 

@@ -56,11 +56,9 @@ var (
 var stringRules = []Rule{rulePrivateKey, ruleCloudKey, rulePaymentKey, ruleServiceToken, ruleGoogleKey, ruleJWT, ruleCleartextURL, ruleLocalEndpoint}
 
 var secretPatterns = []secretPattern{
-	{"PEM private key", regexp.MustCompile(`-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----`), rulePrivateKey},
 	{"AWS access key ID", regexp.MustCompile(`\b(?:AKIA|ASIA)[0-9A-Z]{16}\b`), ruleCloudKey},
 	{"Google Cloud service account", regexp.MustCompile(`"type"\s*:\s*"service_account"`), ruleCloudKey},
 	{"Stripe secret key", regexp.MustCompile(`\b[sr]k_live_[0-9A-Za-z]{20,}\b`), rulePaymentKey},
-	{"Razorpay key secret", regexp.MustCompile(`\brzp_live_[0-9A-Za-z]{14,}\b`), rulePaymentKey},
 	{"GitHub token", regexp.MustCompile(`\b(?:ghp|gho|ghu|ghs|ghr)_[0-9A-Za-z]{36}\b|\bgithub_pat_[0-9A-Za-z_]{82}\b`), ruleServiceToken},
 	{"Slack token", regexp.MustCompile(`\bxox[abpors]-[0-9A-Za-z-]{10,}\b`), ruleServiceToken},
 	{"Slack webhook", regexp.MustCompile(`https://hooks\.slack\.com/services/[A-Za-z0-9/_-]+`), ruleServiceToken},
@@ -70,6 +68,20 @@ var secretPatterns = []secretPattern{
 	{"SendGrid API key", regexp.MustCompile(`\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\b`), ruleServiceToken},
 	{"Google API key", regexp.MustCompile(`\bAIza[0-9A-Za-z_-]{35}\b`), ruleGoogleKey},
 	{"JWT", regexp.MustCompile(`\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b`), ruleJWT},
+}
+
+// pemPrivateKey matches a whole PEM private key block, not just its header line:
+// crypto libraries contain the bare header text for parsing, which is harmless.
+var pemPrivateKey = regexp.MustCompile(`-----BEGIN ((?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY)-----\s*` +
+	`(?:[A-Za-z-]+: [^\n]*\n)*` + // optional Proc-Type / DEK-Info headers
+	`[A-Za-z0-9+/=\s]{64,}?-----END [A-Z ]*PRIVATE KEY-----`)
+
+func hasPrivateKey(data []byte) (string, bool) {
+	m := pemPrivateKey.FindSubmatch(data)
+	if m == nil {
+		return "", false
+	}
+	return string(m[1]), true
 }
 
 var (
@@ -84,6 +96,8 @@ var benignHTTP = []string{
 	"http://iptc.org/", "http://www.iec.ch", "http://www.color.org", "http://crl.apple.com/",
 	"http://ocsp.apple.com/", "http://certs.apple.com/", "http://www.openssl.org/", "http://example.com",
 	"http://www.example.com", "http://www.google.com/schemas", "http://www.opengis.net",
+	"http://data.europa.eu/", // EUDI / EU vocabulary identifiers, not fetched
+	"http://www.apache.org/licenses/", "http://opensource.org/licenses/", "http://www.gnu.org/licenses/",
 }
 
 // Bundled files worth scanning as text. Images, fonts and compiled assets are skipped.
@@ -101,9 +115,24 @@ type source struct {
 }
 
 func stringChecks(app *bundle.App) []scan.Finding {
+	hits := map[string][]string{}
+	rules := map[string]Rule{}
+	seen := map[string]bool{}
+	add := func(r Rule, ev string) {
+		if seen[r.ID+ev] {
+			return
+		}
+		seen[r.ID+ev] = true
+		hits[r.ID] = append(hits[r.ID], ev)
+		rules[r.ID] = r
+	}
+
 	var sources []source
 	if !app.Binary.Encrypted {
 		sources = append(sources, source{"binary", app.Binary.Strings(8)})
+		if kind, ok := hasPrivateKey(app.Binary.Data()); ok {
+			add(rulePrivateKey, kind+" block (binary)")
+		}
 	}
 	for _, f := range app.Files {
 		name := path.Base(f.Rel)
@@ -118,19 +147,13 @@ func stringChecks(app *bundle.App) []scan.Finding {
 		if err != nil {
 			continue
 		}
-		sources = append(sources, source{f.Rel, binary.Strings(data, 8)})
-	}
-
-	hits := map[string][]string{}
-	rules := map[string]Rule{}
-	seen := map[string]bool{}
-	add := func(r Rule, ev string) {
-		if seen[r.ID+ev] {
-			return
+		// Key files themselves are reported by MP-STG-002; look for keys pasted into other files.
+		if ext != ".pem" && ext != ".key" {
+			if kind, ok := hasPrivateKey(data); ok {
+				add(rulePrivateKey, kind+" block ("+f.Rel+")")
+			}
 		}
-		seen[r.ID+ev] = true
-		hits[r.ID] = append(hits[r.ID], ev)
-		rules[r.ID] = r
+		sources = append(sources, source{f.Rel, binary.Strings(data, 8)})
 	}
 
 	for _, src := range sources {
@@ -170,7 +193,7 @@ func isBenignHTTP(u string) bool {
 
 // redact keeps enough of a secret to identify it without reprinting it in full.
 func redact(s string) string {
-	if strings.HasPrefix(s, "-----") || strings.HasPrefix(s, `"type"`) || strings.HasPrefix(s, "https://") {
+	if strings.HasPrefix(s, `"type"`) || strings.HasPrefix(s, "https://") {
 		if len(s) > 48 {
 			return s[:48] + "…"
 		}
