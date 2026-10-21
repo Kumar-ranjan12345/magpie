@@ -58,7 +58,12 @@ magpie serve
 
 Your browser opens at `http://127.0.0.1:8077`. Drop an `.ipa` (or a zipped `.app`) on the page and the report appears, with buttons to save it or scan another app. The server only listens on your own machine, and each upload is deleted as soon as its scan finishes.
 
-<p align="center"><img src="docs/serve.png" alt="Magpie drag-and-drop page" width="70%"></p>
+<p align="center">
+  <img src="docs/serve.png" alt="Magpie drag-and-drop page" width="49%">
+  <img src="docs/scanning.png" alt="Magpie showing scan progress" width="49%">
+</p>
+
+While it works, the page shows each real step (uploading, unpacking, running the checks, writing the report) with a timer, then opens the report.
 
 ### 2. Terminal
 
