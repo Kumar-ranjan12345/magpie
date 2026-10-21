@@ -6,13 +6,19 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
+	"net"
+	"net/http"
 	"os"
-	"strings"
+	"os/exec"
+	"runtime"
+	"time"
 
-	"github.com/Kumar-ranjan12345/magpie/internal/bundle"
 	"github.com/Kumar-ranjan12345/magpie/internal/checks"
+	"github.com/Kumar-ranjan12345/magpie/internal/engine"
 	"github.com/Kumar-ranjan12345/magpie/internal/report"
 	"github.com/Kumar-ranjan12345/magpie/internal/scan"
+	"github.com/Kumar-ranjan12345/magpie/internal/server"
 )
 
 // version is set at release time with -ldflags "-X main.version=...".
@@ -22,6 +28,7 @@ const usage = `Magpie — find the shiny things you left in your iOS app.
 
 Usage:
   magpie scan [flags] <app.ipa | App.app>
+  magpie serve [-addr host:port] [-no-open]
   magpie rules
   magpie version
 
@@ -33,6 +40,9 @@ Scan flags:
   -fail-on severity     exit with code 1 if any finding is at or above this
                         severity: info, low, medium, high, critical (default: never)
   -no-color             disable coloured output
+
+Serve opens a local web page where you can drag and drop an .ipa and read
+the report in your browser (default address 127.0.0.1:8077).
 
 Exit codes: 0 ok, 1 findings at or above -fail-on, 2 error.
 `
@@ -49,6 +59,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "scan":
 		return scanCmd(args[1:], stdout, stderr)
+	case "serve":
+		return serveCmd(args[1:], stdout, stderr)
 	case "rules":
 		for _, r := range checks.Rules() {
 			fmt.Fprintf(stdout, "%-11s %-8s %s\n", r.ID, r.Severity, r.Title)
@@ -104,7 +116,7 @@ func scanCmd(args []string, stdout, stderr io.Writer) int {
 		threshold = s
 	}
 
-	rep, err := scanPath(paths[0])
+	rep, err := engine.Scan(paths[0], version)
 	if err != nil {
 		fmt.Fprintln(stderr, "magpie scan:", err)
 		return 2
@@ -143,38 +155,6 @@ func scanCmd(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-func scanPath(path string) (*scan.Report, error) {
-	app, err := bundle.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer app.Close()
-
-	info := scan.AppInfo{
-		Name:       firstNonEmpty(app.String("CFBundleDisplayName"), app.String("CFBundleName")),
-		BundleID:   app.String("CFBundleIdentifier"),
-		Version:    app.String("CFBundleShortVersionString"),
-		Build:      app.String("CFBundleVersion"),
-		MinOS:      firstNonEmpty(app.String("MinimumOSVersion"), app.Binary.MinOS),
-		Arch:       app.Binary.Arch,
-		Encrypted:  app.Binary.Encrypted,
-		Executable: app.String("CFBundleExecutable"),
-	}
-	if info.BundleID == "" {
-		return nil, errors.New("Info.plist has no CFBundleIdentifier; is this an iOS app?")
-	}
-	return scan.NewReport("magpie", version, info, checks.Run(app)), nil
-}
-
-func firstNonEmpty(v ...string) string {
-	for _, s := range v {
-		if strings.TrimSpace(s) != "" {
-			return s
-		}
-	}
-	return ""
-}
-
 func isTerminal(w io.Writer) bool {
 	f, ok := w.(*os.File)
 	if !ok {
@@ -182,4 +162,54 @@ func isTerminal(w io.Writer) bool {
 	}
 	st, err := f.Stat()
 	return err == nil && st.Mode()&os.ModeCharDevice != 0
+}
+
+func serveCmd(args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	fs.Usage = func() { fmt.Fprint(stderr, usage) }
+	addr := fs.String("addr", "127.0.0.1:8077", "")
+	noOpen := fs.Bool("no-open", false, "")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+
+	ln, err := net.Listen("tcp", *addr)
+	if err != nil {
+		fmt.Fprintln(stderr, "magpie serve:", err)
+		return 2
+	}
+	host, port, _ := net.SplitHostPort(ln.Addr().String())
+	if ip := net.ParseIP(host); ip == nil || !ip.IsLoopback() {
+		fmt.Fprintln(stderr, "warning: listening beyond this computer; anyone who can reach this address can upload apps to scan")
+	}
+	pageURL := "http://" + net.JoinHostPort(host, port) + "/"
+
+	fmt.Fprintf(stdout, "🐦 Magpie is running at %s\n   Drop an .ipa on the page to scan it. Press Ctrl+C to stop.\n\n", pageURL)
+	if !*noOpen {
+		openBrowser(pageURL)
+	}
+
+	srv := &http.Server{
+		Handler:           (&server.Server{Version: version, Logger: log.New(stdout, "", log.Ltime)}).Handler(),
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		fmt.Fprintln(stderr, "magpie serve:", err)
+		return 2
+	}
+	return 0
+}
+
+func openBrowser(u string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", u)
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", u)
+	default:
+		cmd = exec.Command("xdg-open", u)
+	}
+	_ = cmd.Start() // the URL is printed too, so a failure here is harmless
 }

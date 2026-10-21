@@ -50,10 +50,20 @@
   .empty { text-align: center; padding: 40px; color: var(--good); font-size: 18px; }
   footer { margin-top: 40px; color: var(--muted); font-size: 12px; text-align: center; }
   footer a { color: inherit; }
+  .toolbar { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
+  .toolbar a, .toolbar button { border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    border-radius: 8px; padding: 7px 14px; font: inherit; font-size: 13px; cursor: pointer; text-decoration: none; }
+  @media print { .toolbar, .filters { display: none; } }
 </style>
 </head>
 <body>
 <main>
+  {{if .Interactive}}
+  <div class="toolbar">
+    <a href="/">← Scan another app</a>
+    <button type="button" id="save">Save report</button>
+  </div>
+  {{end}}
   <header>
     <div>
       <div class="brand">🐦 MAGPIE · iOS APP SECURITY SCAN</div>
@@ -101,6 +111,17 @@
     Static analysis only: protections are detected, not rated. Scan only apps you own or are authorised to test.</footer>
 </main>
 <script>
+  var save = document.getElementById('save');
+  if (save) save.addEventListener('click', function () {
+    var copy = document.documentElement.cloneNode(true);
+    var bar = copy.querySelector('.toolbar');
+    if (bar) bar.remove();
+    var blob = new Blob(['<!doctype html>\n' + copy.outerHTML], { type: 'text/html' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'magpie-' + {{.App.BundleID}} + '.html';
+    a.click();
+  });
   document.querySelectorAll('.filters button').forEach(function (b) {
     b.addEventListener('click', function () {
       var f = b.dataset.filter;

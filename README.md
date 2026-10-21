@@ -41,6 +41,16 @@ go install github.com/Kumar-ranjan12345/magpie/cmd/magpie@latest
 
 ## Usage
 
+### Drag and drop
+
+```sh
+magpie serve
+```
+
+Opens a page in your browser at `http://127.0.0.1:8077`. Drop an `.ipa` (or a zipped `.app`) on it and the report appears right there, with a button to save it. Everything stays on your computer, and uploaded apps are deleted as soon as the scan finishes.
+
+### Command line
+
 ```sh
 magpie scan MyApp.ipa                   # coloured report in the terminal
 magpie scan MyApp.app -format json      # machine-readable report

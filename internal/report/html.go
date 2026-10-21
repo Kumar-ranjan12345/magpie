@@ -20,8 +20,19 @@ var tmpl = template.Must(template.New("report").Funcs(template.FuncMap{
 
 // HTML writes a self-contained, shareable report page with no external assets.
 func HTML(w io.Writer, r *scan.Report) error {
+	return render(w, r, false)
+}
+
+// InteractiveHTML is the report as shown by `magpie serve`, with a toolbar to
+// scan another app and save the report.
+func InteractiveHTML(w io.Writer, r *scan.Report) error {
+	return render(w, r, true)
+}
+
+func render(w io.Writer, r *scan.Report, interactive bool) error {
 	return tmpl.Execute(w, struct {
 		*scan.Report
-		Severities []string
-	}{r, []string{"critical", "high", "medium", "low", "info"}})
+		Severities  []string
+		Interactive bool
+	}{r, []string{"critical", "high", "medium", "low", "info"}, interactive})
 }
