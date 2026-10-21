@@ -31,7 +31,7 @@ $ magpie scan MyApp.ipa
 - **iOS-first.** Built for Mach-O, Info.plist, entitlements and code signatures, not an Android tool with iOS bolted on.
 - **One binary, no setup.** No Python, no Docker, no server. Runs on macOS, Linux and Windows.
 - **Made for developers.** Each finding says why it matters and exactly what to change in Xcode.
-- **CI-ready.** JSON output and `-fail-on` exit codes so a pipeline can block a risky build.
+- **CI-ready.** JSON and SARIF output and `-fail-on` exit codes so a pipeline can block a risky build, plus a self-contained HTML report to share with your team.
 
 ## Install
 
@@ -44,7 +44,8 @@ go install github.com/Kumar-ranjan12345/magpie/cmd/magpie@latest
 ```sh
 magpie scan MyApp.ipa                   # coloured report in the terminal
 magpie scan MyApp.app -format json      # machine-readable report
-magpie scan MyApp.ipa -o report.json -format json
+magpie scan MyApp.ipa -format html -o report.html   # shareable report page
+magpie scan MyApp.ipa -format sarif -o magpie.sarif # GitHub code scanning / CI
 magpie scan MyApp.ipa -fail-on high     # exit 1 if anything high or critical is found
 magpie rules                            # list every check
 ```
@@ -63,7 +64,8 @@ Exit codes: `0` ok · `1` findings at or above `-fail-on` · `2` error.
 | **Storage** | Documents exposed via Files, bundled keystores, databases and `.env` files |
 | **Build hygiene** | localhost / staging URLs, source files in the bundle, old deployment targets |
 | **Resilience** | Jailbreak detection, anti-debugging (`ptrace`), Frida / Substrate hooking detection, App Attest / DeviceCheck, known protection SDKs (IOSSecuritySuite, freeRASP, iXGuard…) |
-| **Privacy & platform** | Custom URL schemes, background modes |
+| **Supply chain & privacy** | Embedded framework inventory with versions, analytics / ad SDKs, outdated OpenSSL |
+| **Platform** | Custom URL schemes, background modes |
 
 Run `magpie rules` for the full list with IDs and severities.
 

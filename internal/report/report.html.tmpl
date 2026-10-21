@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magpie report · {{.App.Name}}</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #fff; --ink: #16181d; --muted: #5b6070; --line: #e3e4e8;
+    --critical: #a21caf; --high: #dc2626; --medium: #d97706; --low: #2563eb; --info: #6b7280;
+    --good: #16a34a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111317; --surface: #1a1d23; --ink: #eceef2; --muted: #9ba1ae; --line: #2a2e37;
+      --critical: #e879f9; --high: #f87171; --medium: #fbbf24; --low: #60a5fa; --info: #9ca3af; --good: #4ade80; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; justify-content: space-between; }
+  .brand { font-size: 13px; color: var(--muted); letter-spacing: .04em; }
+  h1 { margin: 4px 0 2px; font-size: 28px; }
+  .bundle { color: var(--muted); font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  .grade { width: 96px; height: 96px; border-radius: 20px; display: grid; place-items: center;
+    font-size: 52px; font-weight: 700; color: #fff; }
+  .grade.A, .grade.B { background: var(--good); } .grade.C { background: var(--medium); }
+  .grade.D, .grade.F { background: var(--high); }
+  .score { text-align: center; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 24px 0; }
+  .meta div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+  .meta span { display: block; font-size: 12px; color: var(--muted); }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 20px; }
+  .filters button { border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 13px; cursor: pointer; }
+  .filters button[aria-pressed="true"] { border-color: var(--ink); font-weight: 600; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+  .finding { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--sev);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+  .finding h2 { font-size: 16px; margin: 0; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 12px; }
+  .pill { color: #fff; background: var(--sev); border-radius: 4px; padding: 1px 7px; font-weight: 600; }
+  .id, .masvs { font-family: ui-monospace, Menlo, monospace; color: var(--muted); }
+  .finding p { margin: 8px 0; color: var(--muted); }
+  ul.evidence { margin: 8px 0; padding: 10px 14px 10px 30px; background: var(--bg); border-radius: 8px;
+    font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; overflow-wrap: anywhere; }
+  .fix { margin: 8px 0 0; } .fix b { color: var(--good); }
+  .critical { --sev: var(--critical); } .high { --sev: var(--high); } .medium { --sev: var(--medium); }
+  .low { --sev: var(--low); } .info { --sev: var(--info); }
+  .empty { text-align: center; padding: 40px; color: var(--good); font-size: 18px; }
+  footer { margin-top: 40px; color: var(--muted); font-size: 12px; text-align: center; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="brand">🐦 MAGPIE · iOS APP SECURITY SCAN</div>
+      <h1>{{.App.Name}}</h1>
+      <div class="bundle">{{.App.BundleID}}</div>
+    </div>
+    <div>
+      <div class="grade {{.Grade}}" aria-label="Grade {{.Grade}}">{{.Grade}}</div>
+      <div class="score">score {{.Score}}/100</div>
+    </div>
+  </header>
+
+  <section class="meta">
+    {{if .App.Version}}<div><span>Version</span>{{.App.Version}}{{if .App.Build}} ({{.App.Build}}){{end}}</div>{{end}}
+    {{if .App.MinOS}}<div><span>Minimum iOS</span>{{.App.MinOS}}</div>{{end}}
+    {{if .App.Arch}}<div><span>Architecture</span>{{.App.Arch}}</div>{{end}}
+    <div><span>Encrypted</span>{{if .App.Encrypted}}Yes, App Store binary{{else}}No{{end}}</div>
+    <div><span>Scanned</span>{{.ScannedAt.Format "2 Jan 2006, 15:04 MST"}}</div>
+  </section>
+
+  <nav class="filters" aria-label="Filter by severity">
+    <button type="button" data-filter="all" aria-pressed="true">All · {{len .Findings}}</button>
+    {{range .Severities}}{{$n := count $.Counts .}}{{if $n}}
+    <button type="button" class="{{.}}" data-filter="{{.}}" aria-pressed="false"><span class="dot" style="background:var(--sev)"></span>{{.}} · {{$n}}</button>
+    {{end}}{{end}}
+  </nav>
+
+  {{if not .Findings}}<div class="empty">No issues found.</div>{{end}}
+  {{range .Findings}}
+  <article class="finding {{sev .Severity}}" data-severity="{{sev .Severity}}">
+    <div class="tags">
+      <span class="pill">{{upper (sev .Severity)}}</span>
+      <span class="id">{{.ID}}</span>
+      <span>{{.Category}}</span>
+      {{if .MASVS}}<span class="masvs">{{.MASVS}}</span>{{end}}
+    </div>
+    <h2>{{.Title}}</h2>
+    <p>{{.Description}}</p>
+    {{if .Evidence}}<ul class="evidence">{{range .Evidence}}<li>{{.}}</li>{{end}}</ul>{{end}}
+    <p class="fix"><b>Fix:</b> {{.Remediation}}</p>
+  </article>
+  {{end}}
+
+  <footer>Generated by <a href="https://github.com/Kumar-ranjan12345/magpie">Magpie</a> {{.Version}}.
+    Static analysis only: protections are detected, not rated. Scan only apps you own or are authorised to test.</footer>
+</main>
+<script>
+  document.querySelectorAll('.filters button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var f = b.dataset.filter;
+      document.querySelectorAll('.filters button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+      document.querySelectorAll('.finding').forEach(function (el) {
+        el.hidden = f !== 'all' && el.dataset.severity !== f;
+      });
+    });
+  });
+</script>
+</body>
+</html>

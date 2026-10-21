@@ -26,7 +26,9 @@ Usage:
   magpie version
 
 Scan flags:
-  -format text|json     output format (default text)
+  -format text|json|html|sarif
+                        output format (default text). html is a shareable
+                        report page; sarif is for GitHub code scanning and CI
   -o file               write the report to a file instead of stdout
   -fail-on severity     exit with code 1 if any finding is at or above this
                         severity: info, low, medium, high, critical (default: never)
@@ -88,7 +90,7 @@ func scanCmd(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "magpie scan: expected exactly one .ipa or .app path")
 		return 2
 	}
-	if *format != "text" && *format != "json" {
+	if *format != "text" && *format != "json" && *format != "html" && *format != "sarif" {
 		fmt.Fprintf(stderr, "magpie scan: unknown format %q\n", *format)
 		return 2
 	}
@@ -120,9 +122,14 @@ func scanCmd(args []string, stdout, stderr io.Writer) int {
 		out, color = f, false
 	}
 
-	if *format == "json" {
+	switch *format {
+	case "json":
 		err = report.JSON(out, rep)
-	} else {
+	case "html":
+		err = report.HTML(out, rep)
+	case "sarif":
+		err = report.SARIF(out, rep)
+	default:
 		err = report.Text(out, rep, color)
 	}
 	if err != nil {
