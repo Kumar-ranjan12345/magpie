@@ -6,66 +6,62 @@
 <title>{{.App.Name}} · Magpie security report</title>
 <style>
   :root {
-    --bg: #ffffff; --ink: #1f2328; --muted: #59636e; --line: #d1d9e0; --soft: #f6f8fa;
+    --bg: #f6f8fa; --surface: #ffffff; --ink: #1f2328; --muted: #59636e; --line: #d1d9e0; --soft: #f6f8fa;
     --critical: #8250df; --high: #cf222e; --medium: #9a6700; --low: #0969da; --info: #59636e;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #0d1117; --ink: #e6edf3; --muted: #9198a1; --line: #30363d; --soft: #151b23;
+    :root { --bg: #0d1117; --surface: #151b23; --ink: #e6edf3; --muted: #9198a1; --line: #30363d; --soft: #0d1117;
       --critical: #ab7df8; --high: #f85149; --medium: #d29922; --low: #4493f8; --info: #9198a1; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink);
     font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
-  main { max-width: 860px; margin: 0 auto; padding: 40px 20px 72px; }
+  main { max-width: 900px; margin: 0 auto; padding: 36px 20px 72px; }
   a { color: inherit; }
-  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
 
-  .toolbar { display: flex; justify-content: space-between; margin-bottom: 32px; font-size: 14px; }
+  .toolbar { display: flex; justify-content: space-between; margin-bottom: 28px; font-size: 14px; }
   .toolbar button { font: inherit; background: none; border: 0; padding: 0; color: var(--ink);
     text-decoration: underline; cursor: pointer; }
 
-  .top { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start;
-    border-bottom: 2px solid var(--ink); padding-bottom: 20px; }
+  header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
   .kicker { margin: 0; color: var(--muted); font-size: 13px; }
-  h1 { margin: 6px 0 2px; font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; }
-  .grade { text-align: right; }
-  .grade b { display: block; font-size: 56px; line-height: 1; }
-  .grade span { color: var(--muted); font-size: 13px; }
+  h1 { margin: 4px 0 2px; font-size: 28px; line-height: 1.2; }
+  .grade { min-width: 112px; text-align: center; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface); padding: 10px 14px; }
+  .grade small { display: block; color: var(--muted); font-size: 12px; }
+  .grade b { display: block; font-size: 44px; line-height: 1.1; }
 
-  dl.meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 24px; margin: 20px 0 0; font-size: 14px; }
-  dl.meta dt { color: var(--muted); }
-  dl.meta dd { margin: 0; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 24px 0 12px; }
+  .meta div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; font-size: 14px; }
+  .meta span { display: block; font-size: 12px; color: var(--muted); }
+  .explain { color: var(--muted); font-size: 13px; margin: 0 0 24px; }
 
-  h2 { font-size: 18px; margin: 40px 0 12px; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--muted); font-weight: 500; font-size: 13px; }
-  td.n { color: var(--muted); width: 2.5em; }
-  td a { text-decoration: none; }
-  td a:hover { text-decoration: underline; }
-  .counts { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; }
+  .filters button { border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+    border-radius: 6px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  .filters button[aria-pressed="true"] { color: var(--ink); border-color: var(--muted); font-weight: 600; }
 
-  .sev { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
-  .critical { color: var(--critical); } .high { color: var(--high); } .medium { color: var(--medium); }
-  .low { color: var(--low); } .info { color: var(--info); }
+  .finding { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px 20px; margin-bottom: 12px; }
+  .finding .line { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); }
+  .sev { font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+  .critical .sev { color: var(--critical); } .high .sev { color: var(--high); } .medium .sev { color: var(--medium); }
+  .low .sev { color: var(--low); } .info .sev { color: var(--info); }
+  .finding h2 { margin: 4px 0 0; font-size: 16px; }
+  .finding p { margin: 8px 0; }
+  .finding .why { color: var(--muted); }
+  pre { margin: 8px 0; padding: 8px 12px; background: var(--soft); border: 1px solid var(--line); border-radius: 4px;
+    white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12.5px; line-height: 1.5; }
+  .fix b { font-weight: 600; }
+  .none { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 32px; text-align: center; }
 
-  section.finding { border-top: 1px solid var(--line); padding: 20px 0 8px; }
-  section.finding h3 { margin: 0; font-size: 16px; }
-  section.finding h3 .num { color: var(--muted); font-weight: 400; margin-right: 6px; }
-  .line { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-  section.finding p { margin: 10px 0; }
-  .label { font-weight: 600; }
-  pre { margin: 6px 0 12px; padding: 10px 12px; background: var(--soft); border: 1px solid var(--line);
-    border-radius: 4px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12.5px; line-height: 1.5; }
-  .none { padding: 24px 0; }
+  footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
 
-  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-
-  @media (max-width: 560px) { .top { flex-direction: column-reverse; } .grade { text-align: left; } }
+  @media (max-width: 560px) { header { flex-direction: column; } }
   @media print {
-    .toolbar { display: none; }
-    section.finding { break-inside: avoid; }
-    body { font-size: 12px; }
+    body { background: #fff; }
+    .toolbar, .filters { display: none; }
+    .finding { break-inside: avoid; }
   }
 </style>
 </head>
@@ -78,70 +74,74 @@
   </div>
   {{end}}
 
-  <div class="top">
+  <header>
     <div>
       <p class="kicker">Magpie security report</p>
       <h1>{{.App.Name}}</h1>
       <div class="mono">{{.App.BundleID}}</div>
     </div>
     <div class="grade">
-      <b class="{{if or (eq .Grade "A") (eq .Grade "B")}}{{else if eq .Grade "C"}}medium{{else}}high{{end}}">{{.Grade}}</b>
-      <span>{{.Score}} / 100</span>
+      <small>Security grade</small>
+      <b>{{.Grade}}</b>
+      <small>{{.Score}} / 100</small>
     </div>
-  </div>
+  </header>
 
-  <dl class="meta">
-    {{if .App.Version}}<dt>Version</dt><dd>{{.App.Version}}{{if .App.Build}} (build {{.App.Build}}){{end}}</dd>{{end}}
-    {{if .App.MinOS}}<dt>Minimum iOS</dt><dd>{{.App.MinOS}}</dd>{{end}}
-    {{if .App.Arch}}<dt>Architecture</dt><dd>{{.App.Arch}}</dd>{{end}}
-    <dt>Binary</dt><dd>{{if .App.Encrypted}}FairPlay-encrypted (App Store download), code checks limited{{else}}Not encrypted{{end}}</dd>
-    <dt>Scanned</dt><dd>{{.ScannedAt.Format "2 January 2006, 3:04 PM MST"}}</dd>
-    <dt>Magpie</dt><dd>{{.Version}}</dd>
-  </dl>
+  <section class="meta">
+    {{if .App.Version}}<div><span>Version</span>{{.App.Version}}{{if .App.Build}} ({{.App.Build}}){{end}}</div>{{end}}
+    {{if .App.MinOS}}<div><span>Minimum iOS</span>{{.App.MinOS}}</div>{{end}}
+    {{if .App.Arch}}<div><span>Architecture</span>{{.App.Arch}}</div>{{end}}
+    <div><span>Encrypted</span>{{if .App.Encrypted}}Yes, App Store binary{{else}}No{{end}}</div>
+    <div><span>Scanned</span>{{.ScannedAt.Format "2 Jan 2006, 3:04 PM MST"}}</div>
+  </section>
 
-  <h2>Summary</h2>
+  <p class="explain">The grade starts at 100 and each finding takes points off: critical 30, high 15, medium 8, low 3, info 0.
+    90+ is A, 80+ B, 65+ C, 50+ D, below that F. Any critical finding caps the grade at D and any high finding at C.</p>
+
   {{if .Findings}}
-  <p class="counts">{{len .Findings}} findings: {{summary .Counts}}.</p>
-  <table>
-    <thead><tr><th>#</th><th>Severity</th><th>Finding</th><th>Rule</th></tr></thead>
-    <tbody>
-    {{range $i, $f := .Findings}}
-      <tr>
-        <td class="n">{{inc $i}}</td>
-        <td><span class="sev {{sev $f.Severity}}">{{sev $f.Severity}}</span></td>
-        <td><a href="#f{{inc $i}}">{{$f.Title}}</a></td>
-        <td class="mono">{{$f.ID}}</td>
-      </tr>
-    {{end}}
-    </tbody>
-  </table>
+  <nav class="filters" aria-label="Filter by severity">
+    <button type="button" data-filter="all" aria-pressed="true">All {{len .Findings}}</button>
+    {{range .Severities}}{{$n := count $.Counts .}}{{if $n}}<button type="button" data-filter="{{.}}" aria-pressed="false">{{title .}} {{$n}}</button>{{end}}{{end}}
+  </nav>
   {{else}}
-  <p class="none">No issues found.</p>
+  <div class="none">No issues found.</div>
   {{end}}
 
-  {{if .Findings}}<h2>Details</h2>{{end}}
-  {{range $i, $f := .Findings}}
-  <section class="finding" id="f{{inc $i}}">
-    <h3><span class="num">{{inc $i}}.</span>{{$f.Title}}</h3>
-    <p class="line"><span class="sev {{sev $f.Severity}}">{{sev $f.Severity}}</span> · <span class="mono">{{$f.ID}}</span> · {{$f.Category}}{{if $f.MASVS}} · {{$f.MASVS}}{{end}}</p>
-    <p>{{$f.Description}}</p>
-    {{if $f.Evidence}}<div class="label">Evidence</div>
-    <pre>{{range $j, $e := $f.Evidence}}{{if $j}}
+  {{range .Findings}}
+  <article class="finding {{sev .Severity}}" data-severity="{{sev .Severity}}">
+    <div class="line">
+      <span class="sev">{{sev .Severity}}</span>
+      <span class="mono">{{.ID}}</span>
+      <span>{{.Category}}{{if .MASVS}} · {{.MASVS}}{{end}}</span>
+    </div>
+    <h2>{{.Title}}</h2>
+    <p class="why">{{.Description}}</p>
+    {{if .Evidence}}<pre>{{range $j, $e := .Evidence}}{{if $j}}
 {{end}}{{$e}}{{end}}</pre>{{end}}
-    <p><span class="label">Recommendation.</span> {{$f.Remediation}}</p>
-  </section>
+    <p class="fix"><b>Fix:</b> {{.Remediation}}</p>
+  </article>
   {{end}}
 
   <footer>
-    Generated by <a href="https://github.com/Kumar-ranjan12345/magpie">Magpie</a>, a static scanner: it reads the built app and does not run it.
-    Runtime protections are detected, not rated. Only scan apps you own or are authorised to test.
+    Generated by <a href="https://github.com/Kumar-ranjan12345/magpie">Magpie</a> {{.Version}}. Magpie reads the built app and does not run it,
+    so runtime protections are detected, not rated. Only scan apps you own or are authorised to test.
   </footer>
 </main>
-{{if .Interactive}}
 <script>
-  document.getElementById('save').addEventListener('click', function () {
+  document.querySelectorAll('.filters button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var f = b.dataset.filter;
+      document.querySelectorAll('.filters button').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+      document.querySelectorAll('.finding').forEach(function (el) {
+        el.hidden = f !== 'all' && el.dataset.severity !== f;
+      });
+    });
+  });
+  var save = document.getElementById('save');
+  if (save) save.addEventListener('click', function () {
     var copy = document.documentElement.cloneNode(true);
-    copy.querySelectorAll('.toolbar, script').forEach(function (el) { el.remove(); });
+    var bar = copy.querySelector('.toolbar');
+    if (bar) bar.remove();
     var blob = new Blob(['<!doctype html>\n' + copy.outerHTML], { type: 'text/html' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -149,6 +149,5 @@
     a.click();
   });
 </script>
-{{end}}
 </body>
 </html>
