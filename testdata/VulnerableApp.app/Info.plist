@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key><string>dev.magpie.vulnerable</string>
+	<key>CFBundleName</key><string>VulnerableApp</string>
+	<key>CFBundleExecutable</key><string>VulnerableApp</string>
+	<key>CFBundleShortVersionString</key><string>1.0</string>
+	<key>CFBundleVersion</key><string>7</string>
+	<key>MinimumOSVersion</key><string>14.0</string>
+	<key>UIFileSharingEnabled</key><true/>
+	<key>UIBackgroundModes</key><array><string>location</string><string>fetch</string></array>
+	<key>CFBundleURLTypes</key>
+	<array><dict><key>CFBundleURLSchemes</key><array><string>vulnapp</string></array></dict></array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key><true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>legacy.insecure-example.net</key>
+			<dict>
+				<key>NSIncludesSubdomains</key><true/>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key><true/>
+				<key>NSExceptionMinimumTLSVersion</key><string>TLSv1.0</string>
+				<key>NSExceptionRequiresForwardSecrecy</key><false/>
+			</dict>
+		</dict>
+	</dict>
+</dict>
+</plist>

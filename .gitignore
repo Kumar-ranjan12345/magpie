@@ -1,0 +1,6 @@
+/magpie
+/dist/
+*.ipa
+!testdata/**/*.ipa
+.DS_Store
+*.dSYM/
