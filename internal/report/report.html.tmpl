@@ -9,9 +9,9 @@
   :root {
     color-scheme: light;
     --bg: #f6f6f3; --surface: #ffffff; --soft: #f1f1ed; --ink: #1b1f2a; --muted: #5f6573; --line: #e2e2dc;
-    --brand: #161b28; --brand-ink: #f5f6f8; --brand-muted: #a3aab8; --brand-line: #2b3242;
-    --accent: #3b5bdb; --accent-soft: #edf1ff; --gold: #c9971a;
-    --critical: #7c3aed; --high: #d1242f; --medium: #b35900; --low: #3b5bdb; --info: #8a8f99;
+    --brand: #15172a; --brand-ink: #f5f6f8; --brand-muted: #a3aab8; --brand-line: #2b3242;
+    --accent: #5b4ee6; --accent-hover: #4a3dd4; --accent-soft: #f1efff; --gold: #c9971a;
+    --critical: #9333ea; --high: #d1242f; --medium: #b35900; --low: #2f6fdc; --info: #8a8f99;
     --bad: #d1242f; --good: #1f8a4c;
   }
   * { box-sizing: border-box; }
@@ -29,12 +29,13 @@
   .btn { font: inherit; font-size: 14px; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--brand-line);
     background: transparent; color: var(--brand-ink); cursor: pointer; text-decoration: none; }
   .btn:hover { border-color: var(--brand-muted); }
-  .btn.primary { background: var(--brand-ink); color: var(--brand); border-color: var(--brand-ink); font-weight: 600; }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 
   main { max-width: 920px; margin: 0 auto; padding: 32px 20px 72px; }
 
   .top { display: flex; justify-content: space-between; gap: 24px; align-items: stretch; }
-  .kicker { margin: 0; color: var(--muted); font-size: 13px; }
+  .kicker { margin: 0; color: var(--accent); font-size: 13px; font-weight: 600; }
   h1 { margin: 4px 0 2px; font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; }
   .grade { display: flex; align-items: center; gap: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
     padding: 12px 18px 12px 14px; border-top: 3px solid var(--g); }
@@ -49,7 +50,7 @@
   .meta div + div { border-left: 1px solid var(--line); }
   .meta span { display: block; font-size: 12px; color: var(--muted); }
   details.how { font-size: 13px; color: var(--muted); margin: 0 0 28px; }
-  details.how summary { cursor: pointer; width: max-content; }
+  details.how summary { cursor: pointer; width: max-content; color: var(--accent); }
   details.how p { margin: 6px 0 0; max-width: 720px; }
 
   .overview { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
@@ -57,14 +58,17 @@
   .filters { display: flex; flex-wrap: wrap; gap: 6px; }
   .filters button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface);
     color: var(--muted); border-radius: 999px; padding: 3px 12px; font: inherit; font-size: 13px; cursor: pointer; }
-  .filters button[aria-pressed="true"] { color: var(--brand-ink); border-color: var(--brand); background: var(--brand); font-weight: 600; }
-  .filters button[aria-pressed="true"] .dot { box-shadow: 0 0 0 1.5px var(--brand-ink); }
+  .filters button[aria-pressed="true"] { color: #fff; border-color: var(--accent); background: var(--accent); font-weight: 600; }
+  .filters button[aria-pressed="true"] .dot { box-shadow: 0 0 0 1.5px #fff; }
+  .filters button:hover { border-color: var(--accent); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sev, var(--muted)); flex: none; }
 
   .critical { --sev: var(--critical); } .high { --sev: var(--high); } .medium { --sev: var(--medium); }
   .low { --sev: var(--low); } .info { --sev: var(--info); }
 
-  .finding { border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; background: var(--surface); }
+  .finding { border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; background: var(--surface);
+    box-shadow: 0 1px 2px rgba(21,23,42,.04); }
+  .finding:target { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   .finding .head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
   .finding h3 { margin: 0; font-size: 16px; line-height: 1.4; }
   .finding .id { color: var(--muted); white-space: nowrap; }
