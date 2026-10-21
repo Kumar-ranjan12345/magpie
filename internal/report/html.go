@@ -2,6 +2,7 @@ package report
 
 import (
 	_ "embed"
+	"fmt"
 	"html/template"
 	"io"
 	"strings"
@@ -13,9 +14,10 @@ import (
 var htmlTemplate string
 
 var tmpl = template.Must(template.New("report").Funcs(template.FuncMap{
-	"upper": strings.ToUpper,
-	"count": func(c map[string]int, s string) int { return c[s] },
-	"sev":   func(s scan.Severity) string { return s.String() },
+	"upper":   strings.ToUpper,
+	"sev":     func(s scan.Severity) string { return s.String() },
+	"inc":     func(i int) int { return i + 1 },
+	"summary": summary,
 }).Parse(htmlTemplate))
 
 // HTML writes a self-contained, shareable report page with no external assets.
@@ -32,7 +34,17 @@ func InteractiveHTML(w io.Writer, r *scan.Report) error {
 func render(w io.Writer, r *scan.Report, interactive bool) error {
 	return tmpl.Execute(w, struct {
 		*scan.Report
-		Severities  []string
 		Interactive bool
-	}{r, []string{"critical", "high", "medium", "low", "info"}, interactive})
+	}{r, interactive})
+}
+
+// summary turns severity counts into "1 critical, 2 high, 4 info".
+func summary(counts map[string]int) string {
+	var parts []string
+	for _, s := range []scan.Severity{scan.Critical, scan.High, scan.Medium, scan.Low, scan.Info} {
+		if n := counts[s.String()]; n > 0 {
+			parts = append(parts, fmt.Sprintf("%d %s", n, s))
+		}
+	}
+	return strings.Join(parts, ", ")
 }

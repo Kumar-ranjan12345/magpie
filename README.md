@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🐦 Magpie
+# Magpie
 
 **Find the shiny things you left in your iOS app.**
 

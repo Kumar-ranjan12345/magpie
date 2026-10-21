@@ -56,9 +56,10 @@ func NewReport(tool, version string, app AppInfo, findings []Finding) *Report {
 	}
 
 	return &Report{
-		Tool:      tool,
-		Version:   version,
-		ScannedAt: time.Now().UTC(),
+		Tool:    tool,
+		Version: version,
+		// Local time, so reports show the scanning machine's time zone (IST in India).
+		ScannedAt: time.Now().Truncate(time.Second),
 		App:       app,
 		Score:     score,
 		Grade:     grade(score, worst),

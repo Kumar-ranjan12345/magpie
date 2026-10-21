@@ -3,23 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Magpie · iOS app security scan</title>
+<title>Magpie</title>
 <style>
-  :root { --bg: #f7f7f5; --surface: #fff; --ink: #16181d; --muted: #5b6070; --line: #d5d7dd; --accent: #2563eb; --bad: #dc2626; }
+  :root { --bg: #ffffff; --surface: #f6f8fa; --ink: #1f2328; --muted: #59636e; --line: #d1d9e0; --accent: #0969da; --bad: #cf222e; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #111317; --surface: #1a1d23; --ink: #eceef2; --muted: #9ba1ae; --line: #343944; --accent: #60a5fa; --bad: #f87171; }
+    :root { --bg: #0d1117; --surface: #151b23; --ink: #e6edf3; --muted: #9198a1; --line: #30363d; --accent: #4493f8; --bad: #f85149; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--ink);
-    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 16px; }
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; padding: 16px; }
   main { width: 100%; max-width: 560px; text-align: center; }
-  h1 { font-size: 30px; margin: 0 0 4px; }
+  h1 { font-size: 28px; margin: 0 0 2px; letter-spacing: -0.01em; }
   .tag { color: var(--muted); margin: 0 0 28px; }
-  #drop { display: block; border: 2px dashed var(--line); border-radius: 18px; background: var(--surface);
-    padding: 56px 24px; cursor: pointer; transition: border-color .15s, transform .15s; }
-  #drop.over { border-color: var(--accent); transform: scale(1.01); }
-  #drop .icon { font-size: 44px; }
-  #drop strong { display: block; font-size: 17px; margin-top: 8px; }
+  #drop { display: block; border: 1px dashed var(--muted); border-radius: 6px; background: var(--surface);
+    padding: 64px 24px; cursor: pointer; }
+  #drop.over { border-color: var(--accent); border-style: solid; }
+  #drop strong { display: block; font-size: 17px; }
   #drop span { color: var(--muted); font-size: 13px; }
   input[type=file] { display: none; }
   #status { min-height: 52px; margin-top: 18px; }
@@ -32,13 +31,12 @@
 </head>
 <body>
 <main>
-  <h1>🐦 Magpie</h1>
-  <p class="tag">Find the shiny things you left in your iOS app.</p>
+  <h1>Magpie</h1>
+  <p class="tag">Security scan for iOS apps</p>
 
   <label id="drop" for="file">
-    <div class="icon">📦</div>
     <strong>Drop an .ipa here</strong>
-    <span>or click to choose a file · a zipped .app works too</span>
+    <span>or click to choose a file. A zipped .app works too.</span>
   </label>
   <input id="file" type="file" accept=".ipa,.zip">
 

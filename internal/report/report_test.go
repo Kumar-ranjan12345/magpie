@@ -27,7 +27,7 @@ func TestHTMLEscapesAndRenders(t *testing.T) {
 	if strings.Contains(out, "Demo <App>") || !strings.Contains(out, "Demo &lt;App&gt;") {
 		t.Error("app name not HTML-escaped")
 	}
-	for _, want := range []string{"MP-NET-001", `data-severity="high"`, "All · 2", "grade C"} {
+	for _, want := range []string{"MP-NET-001", `href="#f1"`, "2 findings: 1 high, 1 low.", `class="medium">C</b>`} {
 		if !strings.Contains(out, want) {
 			t.Errorf("HTML missing %q", want)
 		}

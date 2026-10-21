@@ -53,7 +53,7 @@ func Text(w io.Writer, r *scan.Report, color bool) error {
 	b := &strings.Builder{}
 	app := r.App
 
-	fmt.Fprintf(b, "\n%s🐦 Magpie%s %s— iOS app security scan%s\n\n", c.bold, c.reset, c.dim, c.reset)
+	fmt.Fprintf(b, "\n%sMagpie%s %siOS app security scan%s\n\n", c.bold, c.reset, c.dim, c.reset)
 	row := func(k, v string) {
 		if v != "" {
 			fmt.Fprintf(b, "  %s%-12s%s %s\n", c.dim, k, c.reset, v)
@@ -71,8 +71,9 @@ func Text(w io.Writer, r *scan.Report, color bool) error {
 	row("Minimum iOS", app.MinOS)
 	row("Arch", app.Arch)
 	if app.Encrypted {
-		row("Encrypted", "yes — App Store binary, code-level checks limited")
+		row("Encrypted", "yes, App Store binary, so code checks are limited")
 	}
+	row("Scanned", r.ScannedAt.Format("2 Jan 2006, 3:04 PM MST"))
 
 	fmt.Fprintf(b, "\n  %sGrade %s%s%s  %sscore %d/100%s   ", c.bold, c.grade(r.Grade), r.Grade, c.reset, c.dim, r.Score, c.reset)
 	for _, s := range []scan.Severity{scan.Critical, scan.High, scan.Medium, scan.Low, scan.Info} {

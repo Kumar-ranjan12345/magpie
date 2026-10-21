@@ -185,7 +185,7 @@ func serveCmd(args []string, stdout, stderr io.Writer) int {
 	}
 	pageURL := "http://" + net.JoinHostPort(host, port) + "/"
 
-	fmt.Fprintf(stdout, "🐦 Magpie is running at %s\n   Drop an .ipa on the page to scan it. Press Ctrl+C to stop.\n\n", pageURL)
+	fmt.Fprintf(stdout, "Magpie is running at %s\nDrop an .ipa on the page to scan it. Press Ctrl+C to stop.\n\n", pageURL)
 	if !*noOpen {
 		openBrowser(pageURL)
 	}

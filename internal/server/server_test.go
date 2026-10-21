@@ -76,7 +76,7 @@ func TestScanUpload(t *testing.T) {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
 	}
 	body := rec.Body.String()
-	for _, want := range []string{"VulnerableApp", "MP-ENT-001", "Scan another app", `class="grade F"`} {
+	for _, want := range []string{"VulnerableApp", "MP-ENT-001", "Scan another app", `class="high">F</b>`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("report missing %q", want)
 		}
