@@ -3,17 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
 <title>{{.App.Name}} · Magpie security report</title>
 <style>
   :root {
-    --bg: #ffffff; --surface: #f6f8fa; --ink: #1f2328; --muted: #59636e; --line: #d1d9e0;
-    --critical: #8250df; --high: #cf222e; --medium: #9a6700; --low: #0969da; --info: #8c959f;
-    --good: #1a7f37; --accent: #0969da;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #0d1117; --surface: #151b23; --ink: #e6edf3; --muted: #9198a1; --line: #30363d;
-      --critical: #ab7df8; --high: #f85149; --medium: #d29922; --low: #4493f8; --info: #6e7681;
-      --good: #3fb950; --accent: #4493f8; }
+    color-scheme: light;
+    --bg: #f6f6f3; --surface: #ffffff; --soft: #f1f1ed; --ink: #1b1f2a; --muted: #5f6573; --line: #e2e2dc;
+    --brand: #161b28; --brand-ink: #f5f6f8; --brand-muted: #a3aab8; --brand-line: #2b3242;
+    --accent: #3b5bdb; --accent-soft: #edf1ff; --gold: #c9971a;
+    --critical: #7c3aed; --high: #d1242f; --medium: #b35900; --low: #3b5bdb; --info: #8a8f99;
+    --bad: #d1242f; --good: #1f8a4c;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink);
@@ -22,28 +21,29 @@
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
 
   .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 24px;
-    border-bottom: 1px solid var(--line); }
+    background: var(--brand); color: var(--brand-ink); }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; }
-  .brand svg { width: 26px; height: 26px; display: block; }
-  .brand small { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .brand svg { width: 26px; height: 26px; display: block; border-radius: 6px; }
+  .brand small { color: var(--brand-muted); font-weight: 400; font-size: 13px; }
   .actions { display: flex; gap: 8px; }
-  .btn { font: inherit; font-size: 14px; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--line);
-    background: var(--surface); color: var(--ink); cursor: pointer; text-decoration: none; }
-  .btn:hover { border-color: var(--muted); }
+  .btn { font: inherit; font-size: 14px; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--brand-line);
+    background: transparent; color: var(--brand-ink); cursor: pointer; text-decoration: none; }
+  .btn:hover { border-color: var(--brand-muted); }
+  .btn.primary { background: var(--brand-ink); color: var(--brand); border-color: var(--brand-ink); font-weight: 600; }
 
   main { max-width: 920px; margin: 0 auto; padding: 32px 20px 72px; }
 
   .top { display: flex; justify-content: space-between; gap: 24px; align-items: stretch; }
   .kicker { margin: 0; color: var(--muted); font-size: 13px; }
   h1 { margin: 4px 0 2px; font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; }
-  .grade { display: flex; align-items: center; gap: 14px; border: 1px solid var(--line); border-radius: 10px;
+  .grade { display: flex; align-items: center; gap: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
     padding: 12px 18px 12px 14px; border-top: 3px solid var(--g); }
   .grade b { font-size: 46px; line-height: 1; min-width: 40px; text-align: center; color: var(--g); }
   .grade div { font-size: 13px; color: var(--muted); line-height: 1.4; }
   .grade div strong { display: block; color: var(--ink); font-size: 14px; }
   .g-good { --g: var(--good); } .g-mid { --g: var(--medium); } .g-bad { --g: var(--high); }
 
-  .meta { display: grid; grid-template-columns: repeat(5, auto); border: 1px solid var(--line); border-radius: 10px;
+  .meta { display: grid; grid-template-columns: repeat(5, auto); border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
     margin: 24px 0 10px; }
   .meta div { padding: 10px 16px; font-size: 14px; white-space: nowrap; }
   .meta div + div { border-left: 1px solid var(--line); }
@@ -55,15 +55,16 @@
   .overview { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
   .overview h2 { font-size: 18px; margin: 0; }
   .filters { display: flex; flex-wrap: wrap; gap: 6px; }
-  .filters button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--bg);
+  .filters button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface);
     color: var(--muted); border-radius: 999px; padding: 3px 12px; font: inherit; font-size: 13px; cursor: pointer; }
-  .filters button[aria-pressed="true"] { color: var(--ink); border-color: var(--muted); background: var(--surface); font-weight: 600; }
+  .filters button[aria-pressed="true"] { color: var(--brand-ink); border-color: var(--brand); background: var(--brand); font-weight: 600; }
+  .filters button[aria-pressed="true"] .dot { box-shadow: 0 0 0 1.5px var(--brand-ink); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sev, var(--muted)); flex: none; }
 
   .critical { --sev: var(--critical); } .high { --sev: var(--high); } .medium { --sev: var(--medium); }
   .low { --sev: var(--low); } .info { --sev: var(--info); }
 
-  .finding { border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 12px; }
+  .finding { border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; background: var(--surface); }
   .finding .head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
   .finding h3 { margin: 0; font-size: 16px; line-height: 1.4; }
   .finding .id { color: var(--muted); white-space: nowrap; }
@@ -73,11 +74,11 @@
   .finding p { margin: 10px 0; }
   .finding .why { color: var(--muted); }
   .label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-top: 12px; }
-  pre { margin: 6px 0 0; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  pre { margin: 6px 0 0; padding: 10px 12px; background: var(--soft); border: 1px solid var(--line); border-radius: 6px;
     white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12.5px; line-height: 1.55; }
-  .fix { margin-top: 12px; padding: 10px 12px; border-radius: 6px; background: var(--surface); border-left: 3px solid var(--good); }
+  .fix { margin-top: 12px; padding: 10px 12px; border-radius: 6px; background: #eef7f1; border-left: 3px solid var(--good); }
   .fix .label { margin: 0 0 2px; color: var(--good); }
-  .none { border: 1px solid var(--line); border-radius: 10px; padding: 40px; text-align: center; }
+  .none { border: 1px solid var(--line); border-radius: 12px; padding: 40px; text-align: center; background: var(--surface); }
   .none b { display: block; font-size: 18px; color: var(--good); }
 
   footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
@@ -104,7 +105,7 @@
   {{if .Interactive}}
   <div class="actions">
     <a class="btn" href="/">Scan another app</a>
-    <button class="btn" type="button" id="save">Save report</button>
+    <button class="btn primary" type="button" id="save">Save report</button>
   </div>
   {{end}}
 </header>
